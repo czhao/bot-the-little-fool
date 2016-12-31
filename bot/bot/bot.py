@@ -3,7 +3,7 @@ import flask
 from flask import request
 from flask import Flask
 from flask import json
-
+from auth import requires_auth
 import requests
 
 
@@ -14,6 +14,7 @@ app.config.from_envvar('BOT_APPLICATION_SETTINGS')
 
 
 @app.route('/webhook', methods=['POST','GET'])
+@requires_auth
 def fb_webhook():
 	# handle the validation
 	if request.method == 'GET':

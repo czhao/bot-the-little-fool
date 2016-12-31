@@ -5,6 +5,6 @@ setup(
     packages=['bot'],
     include_package_data=True,
     install_requires=[
-        'flask','requests',
+        'flask','requests','hashlib','hmac'
     ],
 )
