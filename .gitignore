@@ -1,1 +1,4 @@
 venv
+**/*.pyc
+local/**
+bot/bot.egg-info
