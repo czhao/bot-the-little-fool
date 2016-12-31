@@ -4,13 +4,18 @@ from flask import request
 from flask import Flask
 from flask import json
 from auth import requires_auth
+from parser import parse_postback
 import requests
+import logging
+from raven.contrib.flask import Sentry
 
 
 app = Flask(__name__)
 
 app.config.update(DEBUG = True, SECRET_KEY = "123456")
 app.config.from_envvar('BOT_APPLICATION_SETTINGS')
+
+sentry = Sentry(app, dsn=app.config['SENTRY_DSN'],logging=True,level=logging.ERROR)
 
 
 @app.route('/webhook', methods=['POST','GET'])
@@ -32,19 +37,28 @@ def fb_webhook():
 		return "invalid request"
 
 
-
 def process_page_msg(raw_msg):
+	app.logger.error("res: %s",raw_msg)
 	for msg in raw_msg['entry']:
 		if msg['messaging'] is not None:
 				for m in msg['messaging']:
 					sender = m['sender']['id']
-					plain_message = m['message']
-					if 'text' in plain_message:
-						# this is a text message
-						text_message = plain_message['text']
-						# make http calls to link the message
-						data = {'recipient':{'id': sender},'message':{'text':text_message}}
-						fb_send_message(data)
+					if 'message' in m:
+						plain_message = m['message']
+						if 'text' in plain_message:
+							# this is a text message
+							text_message = plain_message['text']
+							# make http calls to link the message
+							data = {'recipient':{'id': sender},'message':{'text':text_message}}
+							fb_send_message(data)
+						if 'quick_reply' in plain_message:
+							pass
+
+					if 'postback' in m:
+						#handle post back message
+						postback =  m['postback']
+						parse_postback(postback['payload'], sender)
+
 	return ''
 
 
