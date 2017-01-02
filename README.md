@@ -14,6 +14,8 @@ pip install hashlib
 pip install requests
 pip install raven
 pip install blinker
+pip install python-memcached
+pip install redis
 ```
 
 ## Run the bot
@@ -32,5 +34,10 @@ FB_ACCESS_TOKEN = ''
 FB_VERIFY_TOKEN = '1234567'
 FB_APP_SECRET_KEY = ''
 SENTRY_DSN = ''
+```
+
+start memcached locally
+```
+memcached
 ```
 
