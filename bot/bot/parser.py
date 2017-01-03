@@ -49,10 +49,9 @@ def parse_quick_reply(payload, message, recipient):
 
 		quick_reply_options = []
 		customize_payload = 'DEVELOPER_DEFINED_PAYLOAD_FOR_CURRENCY'
-		quick_reply_options.append({'content_type':'text', 'title':'SGD', 'payload': customize_payload})
-		quick_reply_options.append({'content_type':'text', 'title':'USD', 'payload':customize_payload})
-		quick_reply_options.append({'content_type':'text', 'title':'RMB', 'payload':customize_payload})
-		quick_reply_options.append({'content_type':'text', 'title':'JPY', 'payload':customize_payload})
+		options = ['SGD','USD','RMB','JPY']
+		for option in options:
+			quick_reply_options.append({'content_type':'text', 'title': option, 'payload': customize_payload})
 		data = {'recipient':{'id': recipient},
 				'message':{'text':'Currency in use?', 'quick_replies':quick_reply_options}
 				}		
@@ -76,9 +75,13 @@ def parse_postback(payload, message, recipient):
 		# start a new conversation
 		quick_reply_options = []
 		customize_payload = 'DEVELOPER_DEFINED_PAYLOAD_FOR_CATEGORY'
-		quick_reply_options.append({'content_type':'text', 'title':'Grocery', 'payload': customize_payload})
-		quick_reply_options.append({'content_type':'text', 'title':'Transportation', 'payload':customize_payload})
-		quick_reply_options.append({'content_type':'text', 'title':'Social', 'payload':customize_payload})
+
+		options = ['Food', 'Grocery', 'Transportation', 'Social', 
+		'Entertainment', 'Gift', 'Vacation', 'Education', 'Others']
+
+		for option in options:
+			print option
+			quick_reply_options.append({'content_type':'text', 'title': option, 'payload': customize_payload})
 
 		# generate the new conversation
 		bill.open_new_session(recipient)

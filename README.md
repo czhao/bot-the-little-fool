@@ -1,3 +1,14 @@
+## System Design
+
+This is an attempt to build a bot backend with Flask stack. Currently it supports Facebook messenger only.
+
+- receive the message via webhook
+- use `supervisor` to perform asynchrous processing to comply with guideline from Facebook
+- use `celery` for task dispatch
+
+## Features
+- bill management
+
 ## Setup
 
 use virtual environment
@@ -16,6 +27,7 @@ pip install raven
 pip install blinker
 pip install python-memcached
 pip install redis
+pip install supervisor
 ```
 
 ## Run the bot
@@ -40,4 +52,22 @@ start memcached locally
 ```
 memcached
 ```
+
+start redis locally
+```
+redis-server --port 12094
+```
+
+start the celery
+```
+celery -A bot.bot.celery worker -l info
+```
+
+load the database schema
+```
+sqlite3 bot.db < schema.sql
+```
+
+
+
 
