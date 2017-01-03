@@ -4,7 +4,7 @@ from flask import request
 from flask import Flask
 from flask import json,g
 from auth import requires_auth
-from parser import parse_postback, process_context_text_message
+from parser import parse_postback, process_context_text_message, parse_task
 import requests
 import logging
 import sqlite3
@@ -80,6 +80,21 @@ def process_page_msg(raw_msg):
 
 	return ''
 
+@celery.task()
+def process_task(task_info, recipient, is_follow_up_available):
+	parse_task(task_info, recipient, is_follow_up_available)
+
+
+def schedule_task(task_info, recipient, is_follow_up_available = False):		
+	process_task.delay(task_info, recipient, is_follow_up_available)
+	if is_follow_up_available:
+		data = {'recipient':{'id': recipient},'sender_action':'typing_on'}
+		fb_send_message(data)
+
+
+def fb_stop_typing(recipient):
+	data = {'recipient':{'id': recipient},'sender_action':'typing_off'}
+	fb_send_message(data)
 
 def fb_send_message(message_data):
 	url = 'https://graph.facebook.com/v2.6/me/messages'

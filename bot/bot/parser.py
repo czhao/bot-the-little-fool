@@ -33,6 +33,9 @@ def process_context_text_message(recipient, m):
 			else:
 				(accepted, message) = bill.update_session_info_within_context(recipient, text_message)
 				send_plain_text_message(recipient, message)
+				if accepted == 1:
+					# engage run a summary
+					bot.schedule_task('bill_summary', recipient, True)
 			return True
 		else:
 			return False
@@ -80,7 +83,6 @@ def parse_postback(payload, message, recipient):
 		'Entertainment', 'Gift', 'Vacation', 'Education', 'Others']
 
 		for option in options:
-			print option
 			quick_reply_options.append({'content_type':'text', 'title': option, 'payload': customize_payload})
 
 		# generate the new conversation
@@ -92,6 +94,14 @@ def parse_postback(payload, message, recipient):
 		bot.fb_send_message(data)
 		return True
 
+
+def parse_task(task_info, recipient, is_interactive):
+	if task_info == "bill_summary":
+		data = {'recipient':{'id': recipient},
+				'message':{'text':bill.get_monthly_spending()}
+				}		
+		bot.fb_stop_typing(recipient)
+		bot.fb_send_message(data)
 
 
 

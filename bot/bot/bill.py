@@ -61,3 +61,13 @@ def save_bill(session_id, category, description, amount, currency):
 	db.commit()
 
 
+def get_monthly_spending():
+
+	db = bot.get_db()
+	statement = ''
+	for row in db.execute('SELECT `description`,`currency`,`payment`,`timestamp` FROM task_bill ORDER BY `timestamp`'):
+		statement = statement + '%s %s %s - %s' % (row[0], row[1], row[2], row[3]) + '\n'
+	return 'You have spent:\n' + statement
+
+
+
