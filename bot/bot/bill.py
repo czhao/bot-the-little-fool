@@ -61,13 +61,25 @@ def save_bill(session_id, category, description, amount, currency):
 	db.commit()
 
 
-def get_monthly_spending():
-
+def get_today_spending():
 	db = bot.get_db()
-	statement = ''
-	for row in db.execute('SELECT `description`,`currency`,`payment`,`timestamp` FROM task_bill ORDER BY `timestamp`'):
-		statement = statement + '%s %s %s - %s' % (row[0], row[1], row[2], row[3]) + '\n'
-	return 'You have spent:\n' + statement
-
+	statement = 'Today you have spent:\n'
+	result = []
+	c = db.cursor()
+	c.execute('SELECT `description`,`currency`,`payment`,strftime("%H:%M",`timestamp`) '+
+		'FROM task_bill WHERE `timestamp` >= date("now", "start of day", "localtime") ' + 
+		'ORDER BY `timestamp` DESC')
+	rows = c.fetchall()
+	if len(rows) > 0:
+		for row in rows:
+			statement = statement + '%s %s %s %s' % (row[0], row[1], row[2], row[3]) + '\n'
+			if len(statement) > 200:
+				result.append(statement)
+				statement = ''
+		if len(statement) > 0:
+			result.append(statement)		
+	else:
+		result.append("You have no spending today.")
+	return result
 
 

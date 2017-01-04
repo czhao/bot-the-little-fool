@@ -97,11 +97,14 @@ def parse_postback(payload, message, recipient):
 
 def parse_task(task_info, recipient, is_interactive):
 	if task_info == "bill_summary":
-		data = {'recipient':{'id': recipient},
-				'message':{'text':bill.get_monthly_spending()}
-				}		
+		all_sections = bill.get_today_spending()
 		bot.fb_stop_typing(recipient)
-		bot.fb_send_message(data)
+		for section in all_sections:
+			print len(section)
+			data = {'recipient':{'id': recipient},
+					'message':{'text':section}
+					}		
+			bot.fb_send_message(data)
 
 
 
