@@ -66,13 +66,13 @@ def get_today_spending():
 	statement = 'Today you have spent:\n'
 	result = []
 	c = db.cursor()
-	c.execute('SELECT `description`,`currency`,`payment`,strftime("%H:%M",`timestamp`) '+
+	c.execute('SELECT `description`,`currency`,`payment`'+
 		'FROM task_bill WHERE `timestamp` >= date("now", "start of day", "localtime") ' + 
 		'ORDER BY `timestamp` DESC')
 	rows = c.fetchall()
 	if len(rows) > 0:
 		for row in rows:
-			statement = statement + '%s %s %s %s' % (row[0], row[1], row[2], row[3]) + '\n'
+			statement = statement + '%s %s %s' % (row[0], row[1], row[2]) + '\n'
 			if len(statement) > 200:
 				result.append(statement)
 				statement = ''
