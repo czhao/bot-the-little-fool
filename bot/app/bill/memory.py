@@ -1,18 +1,20 @@
-import bot
-import utils
+from app import utils
+import app
+from werkzeug.local import LocalProxy
+
 """
 Bill Management
 """
 
 def is_session_active(session_id):
 	cache_key = 'bill_%s' % session_id
-	cache = bot.get_memcache();
+	cache = app.get_memcache();	
 	return cache.get(cache_key) != None
 
 
 def open_new_session(session_id):
 	cache_key = 'bill_%s' % session_id
-	cache = bot.get_memcache();
+	cache = app.get_memcache();	
 	data = {}
 	cache.set(cache_key, data)
 
@@ -24,7 +26,7 @@ status: pending_for_price, pending_for_category,  pending_for_description
 """
 def update_session_info(session_id, status, key, value):
 	cache_key = 'bill_%s' % session_id
-	cache = bot.get_memcache();
+	cache = app.get_memcache();	
 	data = cache.get(cache_key)
 	if data == None:
 		return False
@@ -39,7 +41,7 @@ return 0: accepted  1: context completed -1: irrelevant
 """
 def update_session_info_within_context(session_id, text_message):
 	cache_key = 'bill_%s' % session_id
-	cache = bot.get_memcache();
+	cache = app.get_memcache();	
 	data = cache.get(cache_key)
 	status = data.get('status', '')
 	if status == 'pending_for_description':
@@ -55,14 +57,14 @@ def update_session_info_within_context(session_id, text_message):
 		return (-1, 'I do not get it')
 
 def save_bill(session_id, category, description, amount, currency):
-	db = bot.get_db()
+	db = app.get_db()
 	db.execute('INSERT INTO task_bill (session, category, description, payment, currency) VALUES (?, ?, ?, ?, ?)', 
 		[session_id, category, description, amount, currency])
 	db.commit()
 
 
 def get_today_spending():
-	db = bot.get_db()
+	db = app.get_db()
 	statement = 'Today you have spent:\n'
 	result = []
 	c = db.cursor()

@@ -4,15 +4,14 @@ from flask import request
 from flask import Flask
 from flask import json,g
 from auth import requires_auth
-from parser import parse_postback, process_context_text_message, parse_task
 import requests
 import logging
 import sqlite3
+import bill.parser
 from celery import Celery
 
 from raven.contrib.flask import Sentry
 from werkzeug.contrib.cache import MemcachedCache
-
 
 app = Flask(__name__)
 
@@ -45,7 +44,6 @@ def make_celery(app):
 
 celery = make_celery(app)
 
-
 @app.route('/webhook', methods=['POST','GET'])
 @requires_auth
 def fb_webhook():
@@ -72,7 +70,7 @@ def process_page_msg(raw_msg):
 		if msg['messaging'] is not None:
 				for m in msg['messaging']:
 					sender = m['sender']['id']
-					if process_context_text_message(sender, m):
+					if bill.parser.process_context_text_message(sender, m):
 						pass
 					else:
 						data = {'recipient':{'id': sender},'message':{'text':'oops, I cannot understand'}}
@@ -82,7 +80,7 @@ def process_page_msg(raw_msg):
 
 @celery.task()
 def process_task(task_info, recipient, is_follow_up_available):
-	parse_task(task_info, recipient, is_follow_up_available)
+	bill.parser.parse_task(task_info, recipient, is_follow_up_available)
 
 
 def schedule_task(task_info, recipient, is_follow_up_available = False):		
