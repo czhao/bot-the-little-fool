@@ -1,16 +1,16 @@
-import os
-from flask import request
-from flask import Flask
-from flask import json, g
-from auth import requires_auth
-import requests
 import logging
 import sqlite3
-import bill.parser
-import task.general
-from celery import Celery
-import redis
 
+import bill.parser
+import os
+import redis
+import requests
+import task.general
+from auth import requires_auth
+from celery import Celery
+from flask import Flask
+from flask import json, g
+from flask import request
 from raven.contrib.flask import Sentry
 from werkzeug.contrib.cache import MemcachedCache
 
@@ -25,7 +25,7 @@ app.config.update(dict(
     CELERY_BROKER_URL='redis://localhost:12094',
     CELERY_RESULT_BACKEND='redis://localhost:12094',
     REDIS_HOST='127.0.0.1',
-    REDIS_PORT='6380'
+    REDIS_PORT='12094'
 ))
 
 app.config.from_envvar('BOT_APPLICATION_SETTINGS')

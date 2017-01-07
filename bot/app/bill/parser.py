@@ -1,7 +1,7 @@
 import app
 import memory
-from app.utils import retrieve_text_from_message
 from app.core import profile
+from app.utils import retrieve_text_from_message
 
 
 def send_plain_text_message(recipient, text_message):
@@ -32,9 +32,9 @@ def process_context_text_message(recipient, m):
                 parse_quick_reply(quick_reply_payload, m, recipient)
             else:
                 (accepted, message) = memory.update_session_info_within_context(recipient, text_message)
-                send_plain_text_message(recipient, message)
                 if accepted == -1:
                     return False
+                send_plain_text_message(recipient, message)
                 if accepted == 1:
                     # engage run a summary
                     app.schedule_task('bill_summary', recipient, True)
