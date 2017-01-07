@@ -60,7 +60,7 @@ redis-server --port 12094
 
 start the celery
 ```
-celery -A bot.bot.celery worker -l info
+celery -A app.celery worker -l info
 ```
 
 load the database schema
