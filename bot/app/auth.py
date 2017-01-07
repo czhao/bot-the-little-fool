@@ -1,5 +1,4 @@
 from functools import wraps
-import flask
 from flask import request, Response, current_app
 import hashlib
 import hmac
@@ -8,6 +7,7 @@ import hmac
 def authenticate():
     """Sends a 403 response indicate error"""
     return Response('signature verification failed', 403)
+
 
 def requires_auth(f):
 
