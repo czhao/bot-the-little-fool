@@ -29,6 +29,8 @@ pip install python-memcached
 pip install redis
 pip install supervisor
 pip install -U spacy
+pip install wit
+
 ```
 
 ## Run the bot

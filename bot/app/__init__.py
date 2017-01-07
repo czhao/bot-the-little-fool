@@ -13,6 +13,7 @@ from flask import json, g
 from flask import request
 from raven.contrib.flask import Sentry
 from werkzeug.contrib.cache import MemcachedCache
+from wit import Wit
 
 app = Flask(__name__)
 
@@ -154,6 +155,13 @@ def get_memcache():
     if not hasattr(g, 'mem_cache'):
         g.mem_cache = MemcachedCache([os.environ['MEMCACHED_HOST']])
     return g.mem_cache
+
+
+def get_wit_client():
+    if not hasattr(g, 'nlp_cient'):
+        client = Wit(access_token=app.config['WIT_ACCESS_TOKEN'])
+        g.nlp_client = client
+    return g.nlp_client
 
 
 @app.teardown_appcontext
