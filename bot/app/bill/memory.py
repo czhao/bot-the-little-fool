@@ -9,14 +9,14 @@ Bill Management
 def is_session_active(session_id):
     cache_key = 'bill_%s' % session_id
     cache = app.get_memcache()
-    return cache.get(cache_key) is None
+    return cache.get(cache_key) is not None
 
 
 def open_new_session(session_id):
     cache_key = 'bill_%s' % session_id
     cache = app.get_memcache()
     data = {}
-    cache.set(cache_key, data)
+    cache.set(cache_key, data, timeout=60)
 
 
 """
@@ -33,9 +33,9 @@ def update_session_info(session_id, status, key, value):
     data = cache.get(cache_key)
     if data is None:
         return False
-    data[key] = value;
+    data[key] = value
     data['status'] = status
-    cache.set(cache_key, data)
+    cache.set(cache_key, data, timeout=60)
     return True
 
 
@@ -46,13 +46,13 @@ return 0: accepted  1: context completed -1: irrelevant
 
 def update_session_info_within_context(session_id, text_message):
     cache_key = 'bill_%s' % session_id
-    cache = app.get_memcache();
+    cache = app.get_memcache()
     data = cache.get(cache_key)
     status = data.get('status', '')
     if status == 'pending_for_description':
         data['description'] = text_message
         data['status'] = 'pending_for_price'
-        cache.set(cache_key, data)
+        cache.set(cache_key, data, timeout=60)
         return 0, 'How much is it?'
     elif status == 'pending_for_price' and utils.is_number(text_message):
         cache.delete(cache_key)

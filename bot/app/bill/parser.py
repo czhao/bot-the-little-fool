@@ -1,6 +1,7 @@
 import app
 import memory
 from app.utils import retrieve_text_from_message
+from app.core import profile
 
 
 def send_plain_text_message(recipient, text_message):
@@ -32,6 +33,8 @@ def process_context_text_message(recipient, m):
             else:
                 (accepted, message) = memory.update_session_info_within_context(recipient, text_message)
                 send_plain_text_message(recipient, message)
+                if accepted == -1:
+                    return False
                 if accepted == 1:
                     # engage run a summary
                     app.schedule_task('bill_summary', recipient, True)
@@ -50,15 +53,21 @@ def parse_quick_reply(payload, message, recipient):
         msg = retrieve_text_from_message(message)
         memory.update_session_info(recipient, 'pending_for_currency', 'category', msg.lower())
 
-        quick_reply_options = []
-        customize_payload = 'DEVELOPER_DEFINED_PAYLOAD_FOR_CURRENCY'
-        options = ['SGD', 'USD', 'RMB', 'JPY']
-        for option in options:
-            quick_reply_options.append({'content_type': 'text', 'title': option, 'payload': customize_payload})
-        data = {'recipient': {'id': recipient},
-                'message': {'text': 'Currency in use?', 'quick_replies': quick_reply_options}
-                }
-        app.fb_send_message(data)
+        # check if we have a preference
+        preference = profile.get_currency_preference(recipient)
+        if preference is None:
+            quick_reply_options = []
+            customize_payload = 'DEVELOPER_DEFINED_PAYLOAD_FOR_CURRENCY'
+            options = ['SGD', 'USD', 'RMB', 'JPY']
+            for option in options:
+                quick_reply_options.append({'content_type': 'text', 'title': option, 'payload': customize_payload})
+            data = {'recipient': {'id': recipient},
+                    'message': {'text': 'Currency in use?', 'quick_replies': quick_reply_options}
+                    }
+            app.fb_send_message(data)
+        else:
+            memory.update_session_info(recipient, 'pending_for_description', 'currency', preference)
+            send_plain_text_message(recipient, 'Describe this purchase')
 
     if payload == 'DEVELOPER_DEFINED_PAYLOAD_FOR_CURRENCY':
         msg = retrieve_text_from_message(message)

@@ -7,7 +7,9 @@ import requests
 import logging
 import sqlite3
 import bill.parser
+import task.general
 from celery import Celery
+import redis
 
 from raven.contrib.flask import Sentry
 from werkzeug.contrib.cache import MemcachedCache
@@ -21,7 +23,9 @@ app.config.update(dict(
     USERNAME='admin',
     PASSWORD='default',
     CELERY_BROKER_URL='redis://localhost:12094',
-    CELERY_RESULT_BACKEND='redis://localhost:12094'
+    CELERY_RESULT_BACKEND='redis://localhost:12094',
+    REDIS_HOST='127.0.0.1',
+    REDIS_PORT='6380'
 ))
 
 app.config.from_envvar('BOT_APPLICATION_SETTINGS')
@@ -76,7 +80,12 @@ def process_page_msg(raw_msg):
         if msg['messaging'] is not None:
             for m in msg['messaging']:
                 sender = m['sender']['id']
+                text_msg = None
+                if 'message' in m and 'text' in m['message']:
+                    text_msg = m['message']['text']
                 if bill.parser.process_context_text_message(sender, m):
+                    pass
+                elif text_msg is not None and task.general.context_nlp(sender, text_msg):
                     pass
                 else:
                     data = {'recipient': {'id': sender}, 'message': {'text': 'oops, I cannot understand'}}
@@ -120,6 +129,12 @@ def connect_db():
     return rv
 
 
+def connect_redis():
+    """Connects to the specific redis."""
+    rv = redis.Redis(host=app.config['REDIS_HOST'], port=app.config['REDIS_PORT'])
+    return rv
+
+
 def get_db():
     """Opens a new database connection if there is none yet for the
     current application context.
@@ -127,6 +142,12 @@ def get_db():
     if not hasattr(g, 'sqlite_db'):
         g.sqlite_db = connect_db()
     return g.sqlite_db
+
+
+def get_redis():
+    if not hasattr(g, 'redis_db'):
+        g.redis_db = connect_redis()
+    return g.redis_db
 
 
 def get_memcache():
