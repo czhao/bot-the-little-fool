@@ -164,6 +164,10 @@ def get_wit_client():
     return g.nlp_client
 
 
+def get_config():
+    return app.config
+
+
 @app.teardown_appcontext
 def close_db(error):
     """Closes the database again at the end of the request."""

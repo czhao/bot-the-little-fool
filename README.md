@@ -30,6 +30,8 @@ pip install redis
 pip install supervisor
 pip install -U spacy
 pip install wit
+pip install python-dateutil
+pip install httplib2
 
 ```
 

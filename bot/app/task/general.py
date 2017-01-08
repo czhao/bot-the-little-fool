@@ -22,6 +22,7 @@ from app.core import profile
 
 
 import app
+from app.task.external_apis import find_bus_arrival_time
 
 
 def get_first_intent(intents):
@@ -56,5 +57,25 @@ def context_nlp(sender, text):
                 data = {'recipient': {'id': sender}, 'message': {'text': 'Got it.'}}
                 app.fb_send_message(data)
                 return True
+        if intention == 'bus_timing' and prob > 0.2:
+            bus_number = None
+            stop_number = None
+            if 'bus_no' in entities:
+                data = entities['bus_no'][0]
+                bus_number = data['value']
+            if 'stop_no' in entities:
+                data = entities['stop_no'][0]
+                stop_number = data['value']
+            if bus_number is not None and stop_number is not None:
+                next_bus, sub_next_bus = find_bus_arrival_time(bus_no=bus_number, stop_no=stop_number)
+                if next_bus is not None:
+                    message = "The next bus comes in %d minutes" % next_bus
+                    if sub_next_bus is not None:
+                        message += " and the subsequent bus will arrive in %d minutes." % sub_next_bus
+                    else:
+                        message += "."
+                    data = {'recipient': {'id': sender}, 'message': {'text': message}}
+                    app.fb_send_message(data)
+                    return True
     return False
 
