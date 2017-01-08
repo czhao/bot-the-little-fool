@@ -49,7 +49,7 @@ def context_nlp(sender, text):
             app.fb_send_message(data)
             return True
 
-        if intention != 'update_currency' and prob > 0.2:
+        if intention == 'update_currency' and prob > 0.2:
             if 'bot_currency' in entities:
                 currency_value = entities['bot_currency'][0]['value']
                 profile.save_currency_preference(sender, currency_value)
