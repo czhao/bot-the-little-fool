@@ -24,19 +24,34 @@ from app.core import profile
 import app
 
 
+def get_first_intent(intents):
+    if intents is None:
+        return None
+    return intents[0]['value'], intents[0]['confidence']
+
+
 def context_nlp(sender, text):
     client = app.get_wit_client()
     resp = client.message(text)
+
+    print resp
+
     if 'entities' in resp:
         entities = resp.get('entities')
-        if 'bot_currency' in entities:
-            currency_value = entities['bot_currency'][0]['value']
-            intents = entities.get('intent', None)
-            if intents is None:
-                return False
-            for intent in intents:
-                if intent['value'] != 'update_currency' and intent['confidence'] < 0.2:
-                    continue
+        intents = entities.get('intent', None)
+
+        if intents is None:
+            return False
+
+        intention, prob = get_first_intent(intents)
+        if intention == 'greeting' and prob > 0.5:
+            data = {'recipient': {'id': sender}, 'message': {'text': 'How could I help you?'}}
+            app.fb_send_message(data)
+            return True
+
+        if intention != 'update_currency' and prob > 0.2:
+            if 'bot_currency' in entities:
+                currency_value = entities['bot_currency'][0]['value']
                 profile.save_currency_preference(sender, currency_value)
                 data = {'recipient': {'id': sender}, 'message': {'text': 'Got it.'}}
                 app.fb_send_message(data)

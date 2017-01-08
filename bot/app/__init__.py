@@ -89,7 +89,7 @@ def process_page_msg(raw_msg):
                 elif text_msg is not None and task.general.context_nlp(sender, text_msg):
                     pass
                 else:
-                    data = {'recipient': {'id': sender}, 'message': {'text': 'oops, I cannot understand'}}
+                    data = {'recipient': {'id': sender}, 'message': {'text': 'Sorry, I am a fool.'}}
                     fb_send_message(data)
 
     return ''
