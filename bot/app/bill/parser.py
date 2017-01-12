@@ -113,3 +113,33 @@ def parse_task(task_info, recipient, is_interactive):
                     'message': {'text': section}
                     }
             app.fb_send_message(data)
+
+
+def parse_decision(data):
+    result = data['result']
+    contexts = result['contexts']
+    ai_session_id = data['sessionId']
+
+    uid = None
+    price = None
+    description = None
+    category = None
+
+    for context in contexts:
+        name = context['name']
+        if name == 'payment_daily_flow':
+            params = context['parameters']
+            price = params['cash_amount']
+            description = params['description']
+            category = params['payment-category']
+        elif name == 'generic':
+            params = context['parameters']
+            uid = params['facebook_sender_id']
+
+    if uid is not None:
+        session_id = memory.get_session_key(uid)
+        currency = profile.get_currency_preference(uid)
+        if currency is None:
+            currency = "SGD"
+        memory.save_bill(session_id, category, description, price, currency)
+        app.fb_send_text_msg(uid, 'Got it.')

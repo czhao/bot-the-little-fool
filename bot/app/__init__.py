@@ -2,6 +2,8 @@ import logging
 import sqlite3
 
 import bill.parser
+import bill.memory
+import apiai
 import os
 import redis
 import requests
@@ -74,6 +76,18 @@ def fb_webhook():
         return "invalid request"
 
 
+@app.route('/decision', methods=['POST', 'GET'])
+@requires_auth
+def decision_webhook():
+    # handle the validation
+    if request.method == "POST":
+        json_data = request.get_json()
+        if 'result' in json_data:
+            process_api_result.delay(json_data)
+        return ''
+    return "invalid request"
+
+
 @celery.task()
 def process_page_msg(raw_msg):
     app.logger.error("res: %s", raw_msg)
@@ -96,6 +110,17 @@ def process_page_msg(raw_msg):
 
 
 @celery.task()
+def process_api_result(raw_msg):
+    app.logger.error("res: %s", raw_msg)
+
+    if 'result' in raw_msg:
+        action = raw_msg['result']['action']
+
+        if action == "payment_save":
+            bill.parser.parse_decision(raw_msg)
+
+
+@celery.task()
 def process_task(task_info, recipient, is_follow_up_available):
     bill.parser.parse_task(task_info, recipient, is_follow_up_available)
 
@@ -107,8 +132,18 @@ def schedule_task(task_info, recipient, is_follow_up_available=False):
         fb_send_message(data)
 
 
+def fb_start_typing(recipient):
+    data = {'recipient': {'id': recipient}, 'sender_action': 'typing_on'}
+    fb_send_message(data)
+
+
 def fb_stop_typing(recipient):
     data = {'recipient': {'id': recipient}, 'sender_action': 'typing_off'}
+    fb_send_message(data)
+
+
+def fb_send_text_msg(uid, msg):
+    data = {'recipient': {'id': uid}, 'message': {'text': msg}}
     fb_send_message(data)
 
 
@@ -118,9 +153,20 @@ def fb_send_message(message_data):
     headers = {'Content-Type': 'application/json'}
     payload = {'access_token': app.config['FB_ACCESS_TOKEN']}
     r = requests.post(url, data=json.dumps(data), headers=headers, params=payload)
+    print payload
+    print message_data
     # log the response
     if r.status_code != 200:
         app.logger.error('failed to send fb message %d', r.status_code)
+
+
+def ai_send_message(text_msg, session_id):
+    msg_request = get_ai_client().text_request()
+    msg_request.lang = 'en'
+    msg_request.session_id = session_id
+    msg_request.query = text_msg
+    response = msg_request.getresponse()
+    app.logger.error("res: %s", response.read())
 
 
 def connect_db():
@@ -162,6 +208,13 @@ def get_wit_client():
         client = Wit(access_token=app.config['WIT_ACCESS_TOKEN'])
         g.nlp_client = client
     return g.nlp_client
+
+
+def get_ai_client():
+    if not hasattr(g, 'ai_cient'):
+        client = apiai.ApiAI(app.config['APIAI_CLIENT_ACCESS_TOKEN'])
+        g.ai_client = client
+    return g.ai_client
 
 
 def get_config():

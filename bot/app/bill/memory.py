@@ -19,6 +19,9 @@ def open_new_session(session_id):
     cache.set(cache_key, data, timeout=60)
 
 
+def get_session_key(uid):
+    return 'bill_%s' % uid
+
 """
 update the session info
 
