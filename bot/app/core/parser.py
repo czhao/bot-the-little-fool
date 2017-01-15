@@ -1,5 +1,4 @@
 import app
-import memory
 from app.core import profile
 
 
@@ -21,26 +20,17 @@ def parse_decision(data):
     contexts = result['contexts']
 
     uid = None
-    price = None
-    description = None
-    category = None
+    currency = None
 
     for context in contexts:
         name = context['name']
-        if name == 'payment_daily_flow':
-            params = context['parameters']
-            price = params['cash_amount']
-            description = params['description']
-            category = params['payment-category']
+        params = context['parameters']
+        if name == 'profile_update_currency':
+            currency = params['currency-name']
         elif name == 'generic':
-            params = context['parameters']
             uid = params['facebook_sender_id']
 
     if uid is not None:
-        session_id = memory.get_session_key(uid)
-        currency = profile.get_currency_preference(uid)
-        if currency is None:
-            currency = "SGD"
-        memory.save_bill(session_id, category, description, price, currency)
+        profile.save_currency_preference(uid, currency)
         app.fb_send_text_msg(uid, 'Got it.')
-        app.schedule_task("bill_summary", uid, True)
+

@@ -23,7 +23,7 @@ def find_bus_arrival_time(bus_no, stop_no):
     services = json_data.get('Services', None)
     next_bus_arrival_min = None
     next_next_bus_arrival_min = None
-    if services is not None:
+    if services is not None and len(services) > 0:
         service = services[0]
         next_bus_info = service['NextBus']
         next_bus_arrival = next_bus_info['EstimatedArrival']

@@ -3,11 +3,12 @@ import sqlite3
 
 import bill.parser
 import bill.memory
+import core.parser
+import task.parser
 import apiai
 import os
 import redis
 import requests
-import task.general
 from auth import requires_auth
 from celery import Celery
 from flask import Flask
@@ -68,12 +69,9 @@ def fb_webhook():
         else:
             return "invalid request"
     elif request.method == "POST":
-        json_data = request.get_json()
-        if json_data['object'] == 'page':
-            process_page_msg.delay(json_data)
-        return ''
-    else:
-        return "invalid request"
+        pass
+
+    return "invalid request"
 
 
 @app.route('/decision', methods=['POST', 'GET'])
@@ -89,35 +87,17 @@ def decision_webhook():
 
 
 @celery.task()
-def process_page_msg(raw_msg):
-    app.logger.error("res: %s", raw_msg)
-    for msg in raw_msg['entry']:
-        if msg['messaging'] is not None:
-            for m in msg['messaging']:
-                sender = m['sender']['id']
-                text_msg = None
-                if 'message' in m and 'text' in m['message']:
-                    text_msg = m['message']['text']
-                if bill.parser.process_context_text_message(sender, m):
-                    pass
-                elif text_msg is not None and task.general.context_nlp(sender, text_msg):
-                    pass
-                else:
-                    data = {'recipient': {'id': sender}, 'message': {'text': 'Sorry, I am a fool.'}}
-                    fb_send_message(data)
-
-    return ''
-
-
-@celery.task()
 def process_api_result(raw_msg):
     app.logger.error("res: %s", raw_msg)
 
     if 'result' in raw_msg:
         action = raw_msg['result']['action']
-
         if action == "payment_save":
             bill.parser.parse_decision(raw_msg)
+        elif action == "profile_update_currency":
+            core.parser.parse_decision(raw_msg)
+        elif action == "estimate_bus_arrival":
+            task.parser.parse_decision(raw_msg)
 
 
 @celery.task()
