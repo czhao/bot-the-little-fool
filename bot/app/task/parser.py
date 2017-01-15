@@ -32,3 +32,34 @@ def parse_decision(data):
             app.fb_send_text_msg(uid, 'No response from LTA')
     return False
 
+
+def parse_decision_bus(data):
+    result = data['result']
+    contexts = result['contexts']
+
+    uid = None
+    station_no = None
+    bus_no = None
+
+    for context in contexts:
+        name = context['name']
+        params = context['parameters']
+        if name == 'generic':
+            uid = params['facebook_sender_id']
+        elif name == 'task_bus_timing':
+            station_no = params['station_no']
+            bus_no = params['bus_no']
+
+    if uid is not None and bus_no is not None and station_no is not None:
+        next_bus, sub_next_bus = external_apis.find_bus_arrival_time(bus_no, stop_no=station_no)
+        if next_bus is not None:
+            message = "The next bus comes in %d minutes" % next_bus
+            if sub_next_bus is not None:
+                message += " and the subsequent bus will arrive in %d minutes." % sub_next_bus
+            else:
+                message += "."
+            app.fb_send_text_msg(uid, message)
+            return True
+        else:
+            app.fb_send_text_msg(uid, 'No response from LTA, any alternatives?')
+    return False

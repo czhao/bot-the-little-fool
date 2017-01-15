@@ -1,14 +1,14 @@
 import logging
+import os
 import sqlite3
 
-import bill.parser
-import bill.memory
-import core.parser
-import task.parser
 import apiai
-import os
+import bill.memory
+import bill.parser
+import core.parser
 import redis
 import requests
+import task.parser
 from auth import requires_auth
 from celery import Celery
 from flask import Flask
@@ -98,6 +98,8 @@ def process_api_result(raw_msg):
             core.parser.parse_decision(raw_msg)
         elif action == "estimate_bus_arrival":
             task.parser.parse_decision(raw_msg)
+        elif action == "estimate_bus_arrival_v2":
+            task.parser.parse_decision_bus(raw_msg)
 
 
 @celery.task()
