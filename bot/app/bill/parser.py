@@ -16,11 +16,10 @@ def parse_task(task_info, recipient, is_interactive):
             app.fb_send_message(data)
 
 
-def parse_decision(data):
+def parse_decision(data, uid=None):
     result = data['result']
     contexts = result['contexts']
 
-    uid = None
     price = None
     description = None
     category = None
@@ -32,9 +31,6 @@ def parse_decision(data):
             price = params['cash_amount']
             description = params['description']
             category = params['payment-category']
-        elif name == 'generic':
-            params = context['parameters']
-            uid = params['facebook_sender_id']
 
     if uid is not None:
         session_id = memory.get_session_key(uid)

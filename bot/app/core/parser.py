@@ -15,11 +15,9 @@ def parse_task(task_info, recipient, is_interactive):
             app.fb_send_message(data)
 
 
-def parse_decision(data):
+def parse_decision(data, uid=None):
     result = data['result']
     contexts = result['contexts']
-
-    uid = None
     currency = None
 
     for context in contexts:
@@ -27,8 +25,6 @@ def parse_decision(data):
         params = context['parameters']
         if name == 'profile_update_currency':
             currency = params['currency-name']
-        elif name == 'generic':
-            uid = params['facebook_sender_id']
 
     if uid is not None:
         profile.save_currency_preference(uid, currency)

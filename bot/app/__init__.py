@@ -66,15 +66,12 @@ def fb_webhook():
         token = request.args.get('hub.verify_token')
         if mode == 'subscribe' and token == app.config['FB_VERIFY_TOKEN']:
             return request.args.get('hub.challenge')
-        else:
-            return "invalid request"
     elif request.method == "POST":
-        pass
+        process_page_msg.delay(request.get_json())
+    return ""
 
-    return "invalid request"
 
-
-@app.route('/decision', methods=['POST', 'GET'])
+@app.route('/action', methods=['POST', 'GET'])
 @requires_auth
 def decision_webhook():
     # handle the validation
@@ -86,20 +83,73 @@ def decision_webhook():
     return "invalid request"
 
 
+@app.route('/mock', methods=['POST'])
+def mock_decision_webhook():
+    # handle the validation
+    json_data = request.get_json()
+    if 'result' in json_data:
+        process_query_result(json_data, '1288011787911930')
+    return ''
+
+
+@celery.task()
+def process_page_msg(raw_msg):
+    app.logger.error("res: %s", raw_msg)
+    for msg in raw_msg['entry']:
+        if msg['messaging'] is not None:
+            for m in msg['messaging']:
+                uid = m['sender']['id']
+                if 'message' in m and 'text' in m['message']:
+                    text_msg = m['message']['text']
+                    response = ai_send_message(text_msg, "s_%s" % uid)
+                    process_query_result(json.loads(response), uid)
+                elif 'postback' in m:
+                    # handle predefined payload
+                    payload = m['postback']['payload']
+                    if payload == 'DEVELOPER_DEFINED_PAYLOAD_FOR_NEW_PAYMENT':
+                        response = ai_send_message('Note a new payment', "s_%s" % uid)
+                        process_query_result(json.loads(response), uid)
+
+
+@celery.task()
+def process_query_result(raw_msg, uid):
+    app.logger.error("res: %s", raw_msg)
+    if 'result' in raw_msg:
+        fulfillment = raw_msg['result']['fulfillment']
+        messages = fulfillment['messages']
+        speech = fulfillment['speech']
+        if speech is not None and len(speech) > 0:
+            fb_send_text_msg(uid, speech)
+        else:
+            for m in messages:
+                msg_type = m['type']
+                if msg_type == 2:
+                    # quick replay
+                    title = m['title']
+                    quick_replies = m['replies']
+                    quick_reply_options = []
+                    for option in quick_replies:
+                        quick_reply_options.append({'content_type': 'text', 'title': option, 'payload': option})
+                    data = {'recipient': {'id': uid}, 'message': {'text': title, 'quick_replies': quick_reply_options}}
+                    fb_send_message(data)
+
+
 @celery.task()
 def process_api_result(raw_msg):
     app.logger.error("res: %s", raw_msg)
 
-    if 'result' in raw_msg:
+    if 'result' in raw_msg and 'sessionId' in raw_msg:
+        session_id = raw_msg['sessionId']
+        uid = session_id[2:]
         action = raw_msg['result']['action']
         if action == "payment_save":
-            bill.parser.parse_decision(raw_msg)
+            bill.parser.parse_decision(raw_msg, uid)
         elif action == "profile_update_currency":
-            core.parser.parse_decision(raw_msg)
+            core.parser.parse_decision(raw_msg, uid)
         elif action == "estimate_bus_arrival":
-            task.parser.parse_decision(raw_msg)
+            task.parser.parse_decision(raw_msg, uid)
         elif action == "estimate_bus_arrival_v2":
-            task.parser.parse_decision_bus(raw_msg)
+            task.parser.parse_decision_bus(raw_msg, uid)
 
 
 @celery.task()
@@ -148,7 +198,7 @@ def ai_send_message(text_msg, session_id):
     msg_request.session_id = session_id
     msg_request.query = text_msg
     response = msg_request.getresponse()
-    app.logger.error("res: %s", response.read())
+    return response.read()
 
 
 def connect_db():

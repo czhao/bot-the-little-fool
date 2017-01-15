@@ -2,21 +2,11 @@ import app
 import external_apis
 
 
-def parse_decision(data):
+def parse_decision(data, uid=None):
     result = data['result']
-    contexts = result['contexts']
-
-    uid = None
-
     parameters = result['parameters']
     bus_no = parameters['bus_no']
     station_no = parameters['station_no']
-
-    for context in contexts:
-        name = context['name']
-        params = context['parameters']
-        if name == 'generic':
-            uid = params['facebook_sender_id']
 
     if uid is not None:
         next_bus, sub_next_bus = external_apis.find_bus_arrival_time(bus_no, stop_no=station_no)
@@ -33,20 +23,17 @@ def parse_decision(data):
     return False
 
 
-def parse_decision_bus(data):
+def parse_decision_bus(data, uid=None):
     result = data['result']
     contexts = result['contexts']
 
-    uid = None
     station_no = None
     bus_no = None
 
     for context in contexts:
         name = context['name']
         params = context['parameters']
-        if name == 'generic':
-            uid = params['facebook_sender_id']
-        elif name == 'task_bus_timing':
+        if name == 'task_bus_timing':
             station_no = params['station_no']
             bus_no = params['bus_no']
 
