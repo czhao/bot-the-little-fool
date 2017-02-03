@@ -37,11 +37,16 @@ app.config.from_envvar('BOT_APPLICATION_SETTINGS')
 sentry = Sentry(app, dsn=app.config['SENTRY_DSN'], logging=True, level=logging.ERROR)
 
 
-def make_celery(app):
-    celery = Celery(app.import_name, backend=app.config['CELERY_RESULT_BACKEND'],
-                    broker=app.config['CELERY_BROKER_URL'])
-    celery.conf.update(app.config)
-    task_base = celery.Task
+def make_celery(flask_app):
+    celery_app = Celery(flask_app.import_name,
+                        backend=flask_app.config['CELERY_RESULT_BACKEND'],
+                        broker=flask_app.config['CELERY_BROKER_URL'])
+    # celery_app.conf.update(app.config)
+    celery_app.conf.update(dict(
+        timezone='Asia/Singapore',
+        enable_utc=True
+    ))
+    task_base = celery_app.Task
 
     class ContextTask(task_base):
         abstract = True
@@ -50,8 +55,8 @@ def make_celery(app):
             with app.app_context():
                 return task_base.__call__(self, *args, **kwargs)
 
-    celery.Task = ContextTask
-    return celery
+    celery_app.Task = ContextTask
+    return celery_app
 
 
 celery = make_celery(app)
@@ -92,6 +97,15 @@ def mock_decision_webhook():
     return ''
 
 
+@app.route('/task', methods=['POST'])
+def schedule_task():
+    # handle the validation
+    json_data = request.get_json()
+    if 'task' in json_data:
+        routine_task.delay(json_data['task'])
+    return ''
+
+
 @celery.task()
 def process_page_msg(raw_msg):
     app.logger.error("res: %s", raw_msg)
@@ -109,6 +123,16 @@ def process_page_msg(raw_msg):
                     if payload == 'DEVELOPER_DEFINED_PAYLOAD_FOR_NEW_PAYMENT':
                         response = ai_send_message('Note a new payment', "s_%s" % uid)
                         process_query_result(json.loads(response), uid)
+                elif 'message' in m and 'attachments' in m['message']:
+                    # handle location
+                    for attachment in m['message']['attachments']:
+                        if attachment['type'] == 'location':
+                            payload = attachment['payload']['coordinates']
+                            lat = payload['lat']
+                            lng = payload['long']
+                            response = ai_send_message('My location is Latitude %.6f Longitude %.6f' % (lat, lng),
+                                                       "s_%s" % uid)
+                            process_query_result(json.loads(response), uid)
 
 
 @celery.task()
@@ -150,6 +174,8 @@ def process_api_result(raw_msg):
             task.parser.parse_decision(raw_msg, uid)
         elif action == "estimate_bus_arrival_v2":
             task.parser.parse_decision_bus(raw_msg, uid)
+        elif action == "location_find_bus_stop_nearby":
+            task.parser.parse_decision_bus_stops_nearby(raw_msg, uid)
 
 
 @celery.task()
@@ -157,11 +183,34 @@ def process_task(task_info, recipient, is_follow_up_available):
     bill.parser.parse_task(task_info, recipient, is_follow_up_available)
 
 
+@celery.on_after_configure.connect
+def setup_periodic_tasks(sender, **kwargs):
+    # Calls test('hello') every 10 seconds.
+    # sender.add_periodic_task(10.0, test.s('hello'), name='add every 10')
+
+    # Calls test('world') every 30 seconds
+    # sender.add_periodic_task(30.0, fb_send_text_msg('1288011787911930', 'Happy Monday3!'), expires=10)
+
+    # Executes every Monday morning at 7:30 a.m.
+    # fb_send_text_msg('1288011787911930', 'Happy Monday2!'),
+    # sender.add_periodic_task(
+    #     crontab(hour='23', minute='05', day_of_week='monday'),
+    #     task.parser.update_bus_stop_info(),
+    # )
+    pass
+
+
 def schedule_task(task_info, recipient, is_follow_up_available=False):
     process_task.delay(task_info, recipient, is_follow_up_available)
     if is_follow_up_available:
         data = {'recipient': {'id': recipient}, 'sender_action': 'typing_on'}
         fb_send_message(data)
+
+
+@celery.task()
+def routine_task(task_name):
+    if task_name == 'load_bus_stops':
+        task.parser.update_bus_stop_info()
 
 
 def fb_start_typing(recipient):

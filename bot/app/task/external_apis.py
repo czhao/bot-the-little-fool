@@ -4,8 +4,8 @@ from urlparse import urlparse
 
 import app
 import httplib2 as http
-from dateutil import parser
 import pytz
+from dateutil import parser
 
 
 def find_bus_arrival_time(bus_no, stop_no):
@@ -40,3 +40,39 @@ def find_bus_arrival_time(bus_no, stop_no):
     return next_bus_arrival_min, next_next_bus_arrival_min
 
 
+def load_all_bus_stops():
+    headers = {'AccountKey': app.get_config()['LTA_TOKEN'], 'accept': 'application/json'}
+    uri = 'http://datamall2.mytransport.sg/'
+    path = '/ltaodataservice/BusStops?$skip=%d'
+    start_index = 0
+    target = urlparse((uri + path) % start_index)
+    method = 'GET'
+    body = ''
+    h = http.Http()
+    # Obtain results
+    response, content = h.request(target.geturl(), method, body, headers)
+    # Parse JSON to print
+    json_data = json.loads(content)
+    bus_stops = json_data.get('value', None)
+
+    db = app.get_db()
+    db.execute('DELETE FROM bus_stop')
+
+    while len(bus_stops) > 0:
+        for bus_stop in bus_stops:
+            db.execute(
+                'INSERT INTO bus_stop (code, road_name, description, lat, lng) VALUES (?, ?, ?, ?, ?)',
+                [bus_stop['BusStopCode'], bus_stop['RoadName'], bus_stop['Description'], bus_stop['Latitude'],
+                 bus_stop['Longitude']])
+        start_index += len(bus_stops)
+        print 'total bus stop %d' % start_index
+        target = urlparse((uri + path) % start_index)
+        method = 'GET'
+        body = ''
+        # Obtain results
+        response, content = h.request(target.geturl(), method, body, headers)
+        # Parse JSON to print
+        json_data = json.loads(content)
+        bus_stops = json_data.get('value', None)
+        db.commit()
+    print 'total bus stop %d' % start_index
