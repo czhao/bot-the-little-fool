@@ -1,5 +1,5 @@
-from app import utils
 import app
+from app import utils
 
 """
 Bill Management
@@ -92,3 +92,27 @@ def get_today_spending():
     else:
         result.append("You have no spending today.")
     return result
+
+
+def get_monthly_spending(start_time, end_time):
+    db = app.get_db()
+    c = db.cursor()
+    print start_time
+    print end_time
+    c.execute('SELECT `currency`,`payment` FROM task_bill WHERE `timestamp` >= ? AND `timestamp` <= ?',
+              [start_time, end_time])
+    rows = c.fetchall()
+    total = 0
+    if len(rows) > 0:
+        for row in rows:
+            currency = row[0]
+            payment = row[1]
+            if currency == 'SGD':
+                total += float(payment)
+            elif currency == 'JPY':
+                total += (float(payment) * 0.013)
+            elif currency == 'USD':
+                total += (float(payment) * 1.41)
+            elif currency == 'RMB':
+                total += (float(payment) * 0.21)
+    return total

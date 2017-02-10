@@ -176,6 +176,8 @@ def process_api_result(raw_msg):
             task.parser.parse_decision_bus(raw_msg, uid)
         elif action == "location_find_bus_stop_nearby":
             task.parser.parse_decision_bus_stops_nearby(raw_msg, uid)
+        elif action == "bill_summary_monthly":
+            bill.parser.parse_decision(raw_msg, uid)
 
 
 @celery.task()

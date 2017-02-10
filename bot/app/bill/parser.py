@@ -20,10 +20,6 @@ def parse_decision(data, uid=None):
     result = data['result']
     contexts = result['contexts']
 
-    price = None
-    description = None
-    category = None
-
     for context in contexts:
         name = context['name']
         if name == 'payment_daily_flow':
@@ -32,11 +28,22 @@ def parse_decision(data, uid=None):
             description = params['description']
             category = params['payment-category']
 
-    if uid is not None:
-        session_id = memory.get_session_key(uid)
-        currency = profile.get_currency_preference(uid)
-        if currency is None:
-            currency = "SGD"
-        memory.save_bill(session_id, category, description, price, currency)
-        app.fb_send_text_msg(uid, 'Got it.')
-        app.schedule_task("bill_summary", uid, True)
+            if uid is not None:
+                session_id = memory.get_session_key(uid)
+                currency = profile.get_currency_preference(uid)
+                if currency is None:
+                    currency = "SGD"
+                memory.save_bill(session_id, category, description, price, currency)
+                app.fb_send_text_msg(uid, 'Got it.')
+                app.schedule_task("bill_summary", uid, True)
+
+        elif name == 'bill_monthly_summary':
+            params = context['parameters']
+            month = params['month-period']
+            month_original = params['month-period.original']
+            dates = month.split('/')
+            start_date = dates[0]
+            end_date = dates[1]
+            answer = memory.get_monthly_spending(start_date + " 00:00:00", end_date + " 23:59:59")
+            output = "You spent %.1f SGD in %s" % (answer, month_original)
+            app.fb_send_text_msg(uid, output)
