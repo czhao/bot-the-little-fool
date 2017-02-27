@@ -116,3 +116,10 @@ def get_monthly_spending(start_time, end_time):
             elif currency == 'RMB':
                 total += (float(payment) * 0.21)
     return total
+
+
+def save_income(session_id, source, description, amount, currency):
+    db = app.get_db()
+    db.execute('INSERT INTO task_bill (session, category, description, payment, currency) VALUES (?, ?, ?, ?, ?)',
+               [session_id, source, description, '-'+amount, currency])
+    db.commit()

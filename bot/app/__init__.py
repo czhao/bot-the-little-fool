@@ -123,6 +123,9 @@ def process_page_msg(raw_msg):
                     if payload == 'DEVELOPER_DEFINED_PAYLOAD_FOR_NEW_PAYMENT':
                         response = ai_send_message('Note a new payment', "s_%s" % uid)
                         process_query_result(json.loads(response), uid)
+                    if payload == 'DEVELOPER_DEFINED_PAYLOAD_FOR_NEW_INCOME':
+                        response = ai_send_message('Note a new income', "s_%s" % uid)
+                        process_query_result(json.loads(response), uid)
                 elif 'message' in m and 'attachments' in m['message']:
                     # handle location
                     for attachment in m['message']['attachments']:
@@ -177,6 +180,8 @@ def process_api_result(raw_msg):
         elif action == "location_find_bus_stop_nearby":
             task.parser.parse_decision_bus_stops_nearby(raw_msg, uid)
         elif action == "bill_summary_monthly":
+            bill.parser.parse_decision(raw_msg, uid)
+        elif action == "save_new_income":
             bill.parser.parse_decision(raw_msg, uid)
 
 

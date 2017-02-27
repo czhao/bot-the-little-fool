@@ -31,8 +31,6 @@ def parse_decision(data, uid=None):
             if uid is not None:
                 session_id = memory.get_session_key(uid)
                 currency = profile.get_currency_preference(uid)
-                if currency is None:
-                    currency = "SGD"
                 memory.save_bill(session_id, category, description, price, currency)
                 app.fb_send_text_msg(uid, 'Got it.')
                 app.schedule_task("bill_summary", uid, True)
@@ -47,3 +45,18 @@ def parse_decision(data, uid=None):
             answer = memory.get_monthly_spending(start_date + " 00:00:00", end_date + " 23:59:59")
             output = "You spent %.1f SGD in %s" % (answer, month_original)
             app.fb_send_text_msg(uid, output)
+
+        elif name == 'new_income':
+            params = context['parameters']
+            source = params['income_source']
+            description = params['description']
+            price = params['cash_amount']
+
+            if uid is not None:
+                # save the income
+                currency = profile.get_currency_preference(uid)
+                session_id = memory.get_session_key(uid)
+                memory.save_income(session_id, source, description, price, currency)
+                app.fb_send_text_msg(uid, 'Got it')
+
+

@@ -8,4 +8,7 @@ def save_currency_preference(uid, currency='SGD'):
 
 def get_currency_preference(uid):
     redis = app.get_redis()
-    return redis.get("currency_%s" % uid)
+    data = redis.get("currency_%s" % uid)
+    if data is None:
+        return 'SGD'
+    return data
