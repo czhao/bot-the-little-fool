@@ -183,6 +183,8 @@ def process_api_result(raw_msg):
             bill.parser.parse_decision(raw_msg, uid)
         elif action == "save_new_income":
             bill.parser.parse_decision(raw_msg, uid)
+        elif action == "timer_start":
+            task.parser.parse_a_new_timer(raw_msg, uid)
 
 
 @celery.task()
@@ -218,6 +220,11 @@ def schedule_task(task_info, recipient, is_follow_up_available=False):
 def routine_task(task_name):
     if task_name == 'load_bus_stops':
         task.parser.update_bus_stop_info()
+
+
+@celery.task()
+def time_up(uid):
+    fb_send_text_msg(uid, "Time Up!")
 
 
 def fb_start_typing(recipient):

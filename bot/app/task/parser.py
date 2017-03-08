@@ -1,6 +1,7 @@
 from math import sin, cos, sqrt, atan2, radians
 
 import app
+import celery
 import external_apis
 
 
@@ -112,3 +113,31 @@ def parse_decision_bus_stops_nearby(data, uid):
         app.fb_send_text_msg(uid, reply)
     else:
         app.fb_send_text_msg(uid, "No bus stop nearby!")
+
+
+def parse_a_new_timer(data, uid):
+    result = data['result']
+    contexts = result['contexts']
+
+    duration = None
+    timer_purpose = None
+
+    for context in contexts:
+        name = context['name']
+        params = context['parameters']
+        if name == 'start_a_timer':
+            duration = params['duration']
+            timer_purpose = params['timer_purpose']
+
+    if uid is not None and duration is not None and timer_purpose is not None:
+        duration_value = duration['amount']
+        duration_unit = duration['unit']
+        duration_minutes = 0
+        if duration_unit == 'min':
+            duration_minutes = duration_value
+        elif duration_unit == 'h':
+            duration_minutes = 60 * duration_value
+        if duration_minutes > 0:
+            # schedule this task
+            app.time_up.apply_async((uid,), countdown=duration_minutes * 60)
+
